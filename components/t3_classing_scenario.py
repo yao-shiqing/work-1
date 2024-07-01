@@ -1,4 +1,4 @@
-# 测试版04 -- 在t2基础上 + sr 且 将r_距离=0的赋值为了-0.05
+# 测试版04 -- 在t2基础上+sr & 将局面三的reward改为仅与距离相关
 # 与 p6_classing_scenario 对应
 
 import numpy as np
@@ -147,7 +147,6 @@ class RewardAllocation:
         r1 = r_agentk_t0 - r_agentk_t1
         # print(f'scenario_1_reward: {r1:.4f}')
         r1 = r1*8
-        # r1[r1 == 0] = -0.05
         self.reward_matrix[:, k] = np.array([r1.item()], dtype=np.float32)
         return r1*8
 
@@ -167,7 +166,6 @@ class RewardAllocation:
         r2 = min_distance_0 - min_distance
         # print(f'scenario_2_reward: {r2:.4f}')
         r2 = r2*8
-        # r2[r2 == 0] = -0.05
         self.reward_matrix[:, k] = np.array([r2.item()], dtype=np.float32) 
         return r2*8
 
@@ -199,41 +197,7 @@ class RewardAllocation:
         max_lamda_30 = 1 if max_lamda_30 == float('-inf') else max_lamda_30
         max_lamda_31 = 1 - np.sqrt(1/sight_range) if max_lamda_30 == float('-inf') else max_lamda_31
         ra = max_lamda_30 - max_lamda_31
-        # ra[ra == 0] = -0.05
-
-        directions = {
-        1: (0,0),
-        2: (0, 1),
-        3: (0, -1),
-        4: (1, 0),
-        5: (-1, 0)}
-        ct = directions.get(self.action_matrix[:, k, :].item(), (0, 0))
-        cx,cy = self.g_state_t0[:,int(n_st * k+2)], self.g_state_t0[:,int(n_st * k+3)]
-        if cy > 0 and cx > 0:
-            dx, dy = 0.5-cx, 0.5-cy
-            ce = (0, -1) if dx > dy else (-1, 0)
-        elif cy < 0 and cx > 0:
-            dx, dy = 0.5-cx, cy + 0.5
-            ce = (0, 1) if dx > dy else (-1, 0)
-        elif cy > 0 and cx < 0:
-            dx, dy = 0.5 + cx, 0.5 - cy
-            ce = (0, -1) if dx > dy else (1, 0)   
-        elif cy < 0 and cx < 0:
-            dx, dy = 0.5 + cx, cy + 0.5
-            ce = (0, 1) if dx > dy else (1, 0)  
-        else:
-            ce = (0,0)
-        # print('c_exp：',ce,'; c_t：',ct,)
-        c1 = np.linalg.norm(np.array(ct) - np.array(ce))
-        rb = (0.5 - c1)/3
-        rb = torch.tensor(rb)
-        rb = rb.to(ra.device)
-        miu_a = 1- self.scenario_3_lamda(k,b1,b2,n)
-        miu_b = self.scenario_3_lamda(k,b1,b2,n)
-        miu_a = miu_a.clone().detach().to(ra.device)
-        miu_b = miu_b.clone().detach().to(ra.device)
-        r3 = miu_a * ra + miu_b * rb
-        # print(f'scenario_3_reward: {r3:.4f}; ra:{ra:.4f}; rb:{rb:.4f}; miu_a*ra:{ma:.4f};  miu_b*rb:{mb:.4f}')
+        r3 = 8 * ra
         self.reward_matrix[:, k] = np.array([r3.item()], dtype=np.float32)
         return r3
 

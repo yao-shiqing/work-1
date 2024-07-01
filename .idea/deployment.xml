@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PublishConfigData" remoteFilesAllowedToDisappearOnAutoupload="false" showDifferentInSync="false">
+    <serverData>
+      <paths name="ysq_23@10.103.12.99:19020 agent">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/home/data_0/ysq_23/smac/work-1/src" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+    </serverData>
+  </component>
+</project>
