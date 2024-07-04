@@ -1,7 +1,7 @@
 from envs import REGISTRY as env_REGISTRY
 from functools import partial
 from components.episode_buffer import EpisodeBatch
-from components.t4_classing_scenario import RewardAllocation
+from components.t5_classing_scenario import RewardAllocation
 import numpy as np
 
 
@@ -58,10 +58,10 @@ class EpisodeRunner:
         self.mac.init_hidden(batch_size=self.batch_size)
         
         # -------------------------------------------
-        nr = np.zeros((3, 1))
-        nt = np.zeros((3, 1))
-        tar = np.zeros((3, 1))
-        sr = np.zeros((3, 1))  # sr -- scenario-reward
+        nr = np.zeros((4, 1))
+        nt = np.zeros((4, 1))
+        tar = np.zeros((4, 1))
+        sr = np.zeros((4, 1))  # sr -- scenario-reward
         # -------------------------------------------
 
         while not terminated:
@@ -139,18 +139,22 @@ class EpisodeRunner:
         self.logger.log_stat(prefix + "s1-reward-mean", np.mean([asr[0, 0] for asr in sr]), self.t_env)
         self.logger.log_stat(prefix + "s2-reward-mean", np.mean([asr[1, 0] for asr in sr]), self.t_env)
         self.logger.log_stat(prefix + "s3-reward-mean", np.mean([asr[2, 0] for asr in sr]), self.t_env)
+        self.logger.log_stat(prefix + "s4-reward-mean", np.mean([asr[3, 0] for asr in sr]), self.t_env)
 
         self.logger.log_stat(prefix + "tar_positive_reward-1", np.mean([arr[0, 0] for arr in nr]), self.t_env)
         self.logger.log_stat(prefix + "tar_positive_reward-2", np.mean([arr[1, 0] for arr in nr]), self.t_env)
         self.logger.log_stat(prefix + "tar_positive_reward-3", np.mean([arr[2, 0] for arr in nr]), self.t_env)
+        self.logger.log_stat(prefix + "tar_positive_reward-4", np.mean([arr[3, 0] for arr in nr]), self.t_env)
 
         self.logger.log_stat(prefix + "tar_total-1", np.mean([att[0, 0] for att in nt]), self.t_env)
         self.logger.log_stat(prefix + "tar_total-2", np.mean([att[1, 0] for att in nt]), self.t_env)
         self.logger.log_stat(prefix + "tar_total-3", np.mean([att[2, 0] for att in nt]), self.t_env)
+        self.logger.log_stat(prefix + "tar_total-4", np.mean([att[3, 0] for att in nt]), self.t_env)
 
         self.logger.log_stat(prefix + "tarcit_1", np.mean([atar[0, 0] for atar in tar]), self.t_env)
         self.logger.log_stat(prefix + "tarcit_2", np.mean([atar[1, 0] for atar in tar]), self.t_env)
         self.logger.log_stat(prefix + "tarcit_3", np.mean([atar[2, 0] for atar in tar]), self.t_env)
+        self.logger.log_stat(prefix + "tarcit_4", np.mean([atar[3, 0] for atar in tar]), self.t_env)
         returns.clear()
 
         for k, v in stats.items():

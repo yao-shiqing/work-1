@@ -22,9 +22,10 @@ class RewardAllocation:
         self.g_state_t0 = self.batch['state'][:,self.t,0:self.n_gstate] 
         self.g_state_t1 = state_t
         self.d_map = self.a_env.max_distance_x
+        # self.sight = self.a_env.unit_sight_range(1)
 
     def scenario_reward(self,nt,nr,tar,sr):
-        self.fig_t()
+        # self.fig_t()
         n = self.a_env.get_obs_move_feats_size() + np.prod(self.a_env.get_obs_enemy_feats_size())
         b1 = self.a_env.get_obs_ally_feats_size()[0]  # 几个 ally agents 
         b2 = self.a_env.get_obs_ally_feats_size()[1]  # 每个 ally agents的特征数量 
@@ -44,9 +45,9 @@ class RewardAllocation:
             obs_i = self.obs_matrix[:,i,:]
             for j in range(b1):
                 if j < i:
-                    obs_record_0[j] = obs_i[:,n + b2 * j]
+                    obs_record_0[i][j] = obs_i[:,n + b2 * j]
                 else:
-                    obs_record_0[j+1] = obs_i[:,n + b2 * j]
+                    obs_record_0[i][j+1] = obs_i[:,n + b2 * j]
             state_all_zero = all(obs_i[:,n + b2 * j] == 0 for j in range(b1))
             c_st_i = 0 if state_all_zero else 1
             c_st.append(c_st_i)
@@ -56,9 +57,11 @@ class RewardAllocation:
             non_zero_indices = np.nonzero(row)[0]
             if len(non_zero_indices) >= 3:
                 obs_record[0, non_zero_indices] = 1
-                
+
         for k in range(self.n_agents):
             obs_k = self.obs_matrix[:,k,:]
+            if np.allclose(obs_k, np.zeros_like(obs_k)):
+                continue
             if all(c_st_i == 0 for c_st_i in c_st):
                 lamda_id = 1
                 lamda_1 = self.scenario_1_lamda(k)
@@ -70,8 +73,8 @@ class RewardAllocation:
                     self.scenario_3_reward(k)
                 else:
                     lamda_id = 4
-                    lamda_4 = self.scenario_4_lamda(k, b1, b2, n)
-                    self.scenario_4_reward(k)
+                    lamda_4 = self.scenario_4_lamda(k,obs_record_0,b2,n)
+                    self.scenario_4_reward(k,obs_record_0,b2,n)
             else:
                 state_all_zero_k = all(obs_k[:,n + b2 * j] == 0 for j in range (b1))
                 if state_all_zero_k:
@@ -85,14 +88,14 @@ class RewardAllocation:
                         self.scenario_3_reward(k)
                     else:
                         lamda_id = 4
-                        lamda_4 = self.scenario_4_lamda(k, b1, b2, n)
-                        self.scenario_4_reward(k)
+                        lamda_4 = self.scenario_4_lamda(k,obs_record_0,b2,n)
+                        self.scenario_4_reward(k,obs_record_0,b2,n)
             nt,nr,tar,sr = self.tarcit(nt,nr,tar,k,lamda_id,sr)
         return self.reward_matrix,nt,nr,tar,sr
 
     def fig_t(self):
         map_x = self.d_map
-        sight_range = 9 / map_x
+        sight_range = 4.5 / map_x
         fig, ax = plt.subplots(figsize=(10, 10))  
         ax.set_xlim(-0.5, 0.5)
         ax.set_ylim(-0.5, 0.5)
@@ -103,32 +106,33 @@ class RewardAllocation:
         ax.grid(True)
         n_st = self.n_gstate/self.n_agents
         for i in range(self.n_agents):
-            x = self.g_state_t1[int(n_st*i+2)]
-            y = self.g_state_t1[int(n_st*i+3)]
+            x = self.g_state_t0[:,int(n_st*i+2)]
+            y = self.g_state_t0[:,int(n_st*i+3)]
             ax.plot(x, y, 'bo') 
-            ax.text(x, y, f'Agent-{i+1} ({x:.2f}, {y:.2f})', ha='center', va='bottom')
+            ax.text(x.item(), y.item(), f'Agent-{i+1} ({x.item():.2f}, {y.item():.2f})', ha='center', va='bottom')
             circle = plt.Circle((x, y), sight_range, color='r', linestyle='--', fill=False)
             ax.add_artist(circle)
-        plt.savefig(f'/home/data_0/ysq_23/smac/work-1/src/results-fig/{self.t:02d}.png')
+        plt.savefig(f'/home/data_0/ysq_23/smac/work-1/src/results-fig-01/{self.t:02d}.png')
         plt.close()
     
     def sight_modification(self,obs_k,k,b1,b2,n):
         for j in range(b1):
             col_index = n + b2 * j + 1   
             target_col_index = n + b2 * j 
-            print('obs_k: ',obs_k) 
-            print('obs_k[:, col_index] : ', obs_k[:, col_index]) 
-            mask = obs_k[:, col_index] > 0.5  
+            mask = (obs_k[:, col_index] > 0.5) | (obs_k[:, col_index] < -0.5)  
             obs_k[:, target_col_index][mask] = 0           
         self.obs_matrix[:,k,:] = obs_k     
 
     def scenario_1_lamda(self,k):
         min_distance = float('inf')
         n_st = self.n_gstate/self.n_agents
-        x_k, y_k = self.g_state_t1[int(n_st * k + 2)], self.g_state_t1[int(n_st * k + 3)] 
+        x_k, y_k = self.g_state_t0[:,int(n_st * k + 2)], self.g_state_t0[:,int(n_st * k + 3)] 
         for j in range(self.n_agents):
+            obs_j = self.obs_matrix[:, j, :]
+            if np.allclose(obs_j, np.zeros_like(obs_j)):
+                continue
             if j != k:
-                x_j, y_j = self.g_state_t1[int(n_st * j + 2)], self.g_state_t1[int(n_st * j + 3)]
+                x_j, y_j = self.g_state_t0[:,int(n_st * j + 2)], self.g_state_t0[:,int(n_st * j + 3)]
                 distance = np.sqrt((x_k - x_j)**2 + (y_k - y_j)**2)
                 if distance < min_distance:
                     min_distance = distance
@@ -137,15 +141,25 @@ class RewardAllocation:
             lamda_1 = (min_distance - 0.5 * d_sight) / d_sight
         elif min_distance > 1.5 * d_sight:
             lamda_1 = 1
+        else:
+            lamda_1 = 0
+            print('-----lamda-1-----')
+            print('obs_k: ', self.obs_matrix[:,k,:])
+            print('min_distance: ', min_distance)
+            print('d_sight: ', d_sight)
+            self.fig_t()
         return lamda_1
 
     def scenario_2_lamda(self,k):
         min_distance = float('inf')
         n_st = self.n_gstate/self.n_agents
-        x_k, y_k = self.g_state_t1[int(n_st * k + 2)], self.g_state_t1[int(n_st * k + 3)]
+        x_k, y_k = self.g_state_t0[:,int(n_st * k + 2)], self.g_state_t0[:,int(n_st * k + 3)]
         for j in range(self.n_agents):
+            obs_j = self.obs_matrix[:, j, :]
+            if np.allclose(obs_j, np.zeros_like(obs_j)):
+                continue
             if j != k:
-                x_j, y_j = self.g_state_t1[int(n_st * j + 2)], self.g_state_t1[int(n_st * j + 3)]
+                x_j, y_j = self.g_state_t0[:,int(n_st * j + 2)], self.g_state_t0[:,int(n_st * j + 3)]
                 distance = np.sqrt((x_k - x_j)**2 + (y_k - y_j)**2)
                 if distance < min_distance:
                     min_distance = distance
@@ -154,6 +168,13 @@ class RewardAllocation:
             lamda_2 = (min_distance - 0.5 * d_sight) / d_sight
         elif min_distance > 1.5 * d_sight:
             lamda_2 = 1
+        else:
+            lamda_2 = 0
+            print('-----lamda-2-----')
+            print('obs_k: ', self.obs_matrix[:,k,:])
+            print('min_distance: ', min_distance)
+            print('d_sight: ', d_sight)
+            self.fig_t()
         return lamda_2
 
     def scenario_3_lamda(self,k,b1,b2,n):
@@ -179,16 +200,20 @@ class RewardAllocation:
         obs_k = self.obs_matrix[:, k, :]
         non_zero_indices = [idx for idx, value in enumerate(obs_record_0[k]) if value != 0]
         j = next(idx for idx in non_zero_indices if idx != k)  # grp -- ally
+        j_grp = j
         j = j - (j > k)
         grp_x = obs_k[:, n + b2 * j + 2]
         grp_y = obs_k[:, n + b2 * j + 3]
         # 主导智能体 -- 组外lamda
         n_st = self.n_gstate / self.n_agents
-        x_k, y_k = self.g_state_t1[int(n_st * k + 2)], self.g_state_t1[int(n_st * k + 3)]
+        x_k, y_k = self.g_state_t0[:,int(n_st * k + 2)], self.g_state_t0[:,int(n_st * k + 3)]
         d_min = float('inf')
         for i in range(len(obs_record_0[k])):
+            obs_i = self.obs_matrix[:, i, :]
+            if np.allclose(obs_i, np.zeros_like(obs_i)):
+                continue
             if obs_record_0[k][i] == 0:
-                x_i, y_i = self.g_state_t1[int(n_st * i + 2)], self.g_state_t1[int(n_st * i + 3)]
+                x_i, y_i = self.g_state_t0[:,int(n_st * i + 2)], self.g_state_t0[:,int(n_st * i + 3)]
                 distance = np.sqrt((x_k - x_i) ** 2 + (y_k - y_i) ** 2)
                 if distance < d_min:
                     d_min = distance
@@ -198,7 +223,7 @@ class RewardAllocation:
         elif d_min > 1.5 * d_sight:
             lamda_4_lead = 1
         # 跟随智能体 -- 组间lamda
-        x_j, y_j = self.g_state_t1[int(n_st * j + 2)], self.g_state_t1[int(n_st * j + 3)]
+        x_j, y_j = self.g_state_t0[:,int(n_st * j_grp + 2)], self.g_state_t0[:,int(n_st * j_grp + 3)]
         d_grp = np.sqrt((x_k - x_j) ** 2 + (y_k - y_j) ** 2)
         if d_grp >= 0.2 * d_sight and d_grp <= 0.5 * d_sight:
             lamda_4_follow = (0.5 * d_sight - d_grp) / 0.3 * d_sight
@@ -225,6 +250,9 @@ class RewardAllocation:
         x_k0, y_k0 = self.g_state_t0[:,int(n_st * k+2)], self.g_state_t0[:,int(n_st * k+3)]
         x_k, y_k = self.g_state_t1[int(n_st * k+2)], self.g_state_t1[int(n_st * k+3)] 
         for j in range(self.n_agents):
+            obs_j = self.obs_matrix[:, j, :]
+            if np.allclose(obs_j, np.zeros_like(obs_j)):
+                continue
             if j != k:
                 x_j, y_j = self.g_state_t0[:,int(n_st * j+2)], self.g_state_t0[:,int(n_st * j+3)]
                 distance = np.sqrt((x_k0 - x_j)**2 + (y_k0 - y_j)**2)
@@ -272,6 +300,7 @@ class RewardAllocation:
         obs_k = self.obs_matrix[:, k, :]
         non_zero_indices = [idx for idx, value in enumerate(obs_record_0[k]) if value != 0]
         j = next(idx for idx in non_zero_indices if idx != k)  # grp -- ally
+        j_grp = j
         j = j - (j > k)
         grp_x = obs_k[:, n + b2 * j + 2]
         grp_y = obs_k[:, n + b2 * j + 3]
@@ -283,23 +312,28 @@ class RewardAllocation:
         d_min_0 = float('inf')
         d_min = float('inf')
         for i in range(len(obs_record_0[k])):
+            obs_i = self.obs_matrix[:, i, :]
+            if np.allclose(obs_i, np.zeros_like(obs_i)):
+                continue
             if obs_record_0[k][i] == 0:
-                x_i, y_i = self.g_state_t0[int(n_st * i + 2)], self.g_state_t0[int(n_st * i + 3)]
+                x_i, y_i = self.g_state_t0[:,int(n_st * i + 2)], self.g_state_t0[:,int(n_st * i + 3)]
                 distance = np.sqrt((x_k0 - x_i) ** 2 + (y_k0 - y_i) ** 2)
                 if distance < d_min_0:
                     d_min_0 = distance
                     d_min = np.sqrt((x_k - x_i) ** 2 + (y_k - y_i) ** 2)
         r4_lead = 8*(d_min_0 - d_min)
 
-        # 跟随智能体 -- 组间lamda
-        x_j0, y_j0 = self.g_state_t0[int(n_st * j + 2)], self.g_state_t0[int(n_st * j + 3)]
-        x_j1, y_j1 = self.g_state_t0[int(n_st * j + 2)], self.g_state_t0[int(n_st * j + 3)]
+        # 跟随智能体 -- 组间reward
+        x_j0, y_j0 = self.g_state_t0[:,int(n_st * j_grp + 2)], self.g_state_t0[:,int(n_st * j_grp + 3)]
+        x_j1, y_j1 = self.g_state_t1[int(n_st * j_grp + 2)], self.g_state_t1[int(n_st * j_grp + 3)]
         d_grp0 = np.sqrt((x_k0 - x_j0)**2 + (y_k0 - y_j0)**2)
         d_grp1 = np.sqrt((x_k - x_j1)**2 + (y_k - y_j1)**2)
         r4_follow = 8*(d_grp0 - d_grp1)
 
-        # 选取智能体 赋值lamda_4
+        # 选取智能体 赋值reward_4
         r4 = r4_lead if grp_x < 0 or (grp_x == 0 and grp_y < 0) else r4_follow
+        # self.reward_matrix[:, k] = np.array([r4.item()], dtype=np.float32)
+        self.reward_matrix[:, k] = np.array([r4], dtype=np.float32)
         return r4
 
     def tarcit(self,nt,nr,tar,k,lamda_id,sr):
