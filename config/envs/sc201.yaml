@@ -4,7 +4,7 @@ env_args:
   continuing_episode: False
   difficulty: "7"
   game_version: null
-  map_name: "5m_vs_6m_new01"
+  map_name: "5m_vs_6m_new03"
   move_amount: 2
   obs_all_health: True
   obs_instead_of_state: False
@@ -30,11 +30,11 @@ env_args:
   heuristic_ai: False
   heuristic_rest: False
   debug: False
-
+ 
 test_greedy: True
-test_nepisode: 4
-test_interval: 10
-log_interval: 10
-runner_log_interval: 20
-learner_log_interval: 20
-t_max: 700
+test_nepisode: 8
+test_interval: 100
+log_interval: 100
+runner_log_interval: 100
+learner_log_interval: 100
+t_max: 10000
