@@ -44,7 +44,16 @@ input_data = torch.randn(batch_size, n, k)
 # 获取obs_k的大小k
 k = input_data.size(2)
 
+<<<<<<< HEAD
 model = SL_Network(n, j, k)
 print(model)
 output = model(input_data)
 print(output.shape)  # 预期形状为 (batch_size, n * j)
+=======
+# test
+# network = SL_Network(n=10, j=5, k=3)
+# input_sample = torch.randn(100,10,3)
+# output = network(input_sample)
+# print("输入大小:", input_sample.size())
+# print("输出大小:", output.size())
+>>>>>>> 2ac4495 (日期0721 修改了局面三&局面四的lamda和reward 使其得以适应不同视距的智能体 同时做了数据清洗 去除了具有敌方智能体的数据)

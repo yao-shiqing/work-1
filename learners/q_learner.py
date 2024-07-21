@@ -96,6 +96,7 @@ class QLearner:
 
         # Normal L2 loss, take mean over actual data
         loss = (masked_td_error ** 2).sum() / mask.sum()
+        # 查看loss的矩阵大小 
 
         # Optimise
         self.optimiser.zero_grad()

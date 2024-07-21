@@ -33,7 +33,7 @@ def main(map_name):
     state_matrix[0] = st_create(a_env)
 
     # 初始局面判断
-    fig_t(a_env,state_matrix[0,:,:],0)
+    # fig_t(a_env,state_matrix[0,:,:],0)
 
     for t in range(time-1):
         
@@ -72,7 +72,7 @@ def main(map_name):
                 if -0.5 <= state_matrix[t + 1, agent, 2] <= 0.5 and -0.5 <= state_matrix[t + 1, agent, 3] <= 0.5:
                     break
         # 判断新局面
-        fig_t(a_env,state_matrix[t+1,:,:],t+1)
+        # fig_t(a_env,state_matrix[t+1,:,:],t+1)
         estimate_scenario(a_env,t,state_matrix,action_matrix,reward_matrix)
         # print('time:',t,'g-state', state_matrix[t+1,:,:])
 
@@ -141,7 +141,8 @@ def obs_create(a_env,g_state,k):
     n_agents = a_env.get_env_info()["n_agents"]
     map_x = a_env.max_distance_x
     sight_range = 9 / map_x
-    obs_k = np.zeros(a_env.get_obs_agent(k).size)  
+    obs_k = np.zeros(a_env.get_obs_agent(k).size) 
+    print(obs_k.shape) 
     x_k = g_state[k, 2]
     y_k = g_state[k, 3]
    

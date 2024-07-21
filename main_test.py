@@ -1,6 +1,6 @@
 import numpy as np
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '5'
+os.environ['CUDA_VISIBLE_DEVICES'] = '7'
 import collections
 from os.path import dirname, abspath
 from copy import deepcopy
@@ -73,7 +73,7 @@ def config_copy(config):
 
 if __name__ == '__main__':
     params = deepcopy(sys.argv)
-    params.append("--config=iql")
+    params.append("--config=iql-01")
     params.append("--env-config=sc201")
 
     # Get the defaults from default.yaml
@@ -94,8 +94,8 @@ if __name__ == '__main__':
     ex.add_config(config_dict)
 
     # Save to disk by default for sacred
-    logger.info("Saving to FileStorageObserver in results/5m_vs_6m_new01_0622_t1.")
-    file_obs_path = os.path.join(results_path, "5m_vs_6m_new01_0622_t1")
+    logger.info("Saving to FileStorageObserver in results/0721_test")
+    file_obs_path = os.path.join(results_path, "0721_test")
     ex.observers.append(FileStorageObserver.create(file_obs_path))
 
     ex.run_commandline(params)

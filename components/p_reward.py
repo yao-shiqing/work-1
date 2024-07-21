@@ -3,7 +3,7 @@ from smac.env import MultiAgentEnv, StarCraft2Env
 import numpy as np
 
 def main():
-    a_env = StarCraft2Env(map_name="3s_vs_5z")
+    a_env = StarCraft2Env(map_name="3s5z")
     env_info = a_env.get_env_info()
     
     n_actions = env_info["n_actions"]
@@ -11,11 +11,20 @@ def main():
     # n_episodes = 1
     a_env.reset()
 
+    print('....... game: ', a_env.map_name ,'.......')
+    sight = a_env.unit_sight_range(1)
+    shoot_range1 = a_env.unit_shoot_range(1)
+    shoot_range2 = a_env.unit_shoot_range(6)
+
+    print('sight', sight)
+    print('shoot_range 1', shoot_range1)
+    print('shoot_range 2', shoot_range2)
+
     state = a_env.get_state()
     state_dict = a_env.get_state_dict()
     obs_agent_1 = a_env.get_obs_agent(1)
     # obs = a_env.get_obs()
-    print('....... game: ', a_env.map_name ,'.......')
+    
     print('n_agents: ', n_agents)
     print('........... obs ...........')
     # print('obs_shape: ', (len(obs),obs[0].size))

@@ -1,7 +1,8 @@
+from sre_parse import State
 from envs import REGISTRY as env_REGISTRY
 from functools import partial
 from components.episode_buffer import EpisodeBatch
-from components.t5_classing_scenario import RewardAllocation
+from components.t6_classing_scenario import RewardAllocation
 import numpy as np
 
 
@@ -105,6 +106,11 @@ class EpisodeRunner:
         # Select actions in the last stored state
         actions = self.mac.select_actions(self.batch, t_ep=self.t, t_env=self.t_env, test_mode=test_mode)
         self.batch.update({"actions": actions}, ts=self.t)
+
+        # ------------------------------------------------------
+        # 改 batch 清洗数据
+        self.batch.clean(self.env)
+        # ------------------------------------------------------
 
         cur_stats = self.test_stats if test_mode else self.train_stats
         cur_returns = self.test_returns if test_mode else self.train_returns

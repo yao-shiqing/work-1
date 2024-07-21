@@ -1,3 +1,4 @@
+import re
 import torch as th
 import numpy as np
 from types import SimpleNamespace as SN
@@ -111,6 +112,40 @@ class EpisodeBatch:
                     v = transform.transform(v)
                 target[new_k][_slices] = v.view_as(target[new_k][_slices])
 
+# -------------------------------------------------------------
+    def clean(self, env):
+        # 初始化定义一些数据
+        num_size = self.data.transition_data['obs'].size()[1]
+        n = env.get_obs_move_feats_size()
+        e1 = env.get_obs_enemy_feats_size()[0]  # 几个 enemy agents 
+        e2 = env.get_obs_enemy_feats_size()[1]  # 每个 enemy agents的特征数量 
+        b1 = env.get_obs_ally_feats_size()[0]  # 几个 ally agents 
+        temp_obs = self.data.transition_data['obs']
+        t = []
+
+        for i in range(self.max_seq_length):
+            temp_obs_i = temp_obs[:,i]
+            for n_a in range(b1):
+                obs_a = temp_obs_i[:,n_a,:]
+                for n_e in range(e1):
+                    if obs_a[:,n + n_e * e2 + 1] != 0:
+                        t.append(i) 
+                        has_nonzero = True
+                        break
+                    else:
+                        has_nonzero = False
+        if has_nonzero: 
+            index_list = [ti for ti in range(num_size) if ti not in t]
+            for k,v in self.data.transition_data.items():
+                temp_v = self.data.transition_data[k]
+                if v.dim() == 3:
+                    new_temp_v = th.cat([temp_v[:, i:i+1,:] for i in index_list], dim=1)
+                elif v.dim() == 4:
+                    new_temp_v = th.cat([temp_v[:, i:i+1,:, :] for i in index_list], dim=1)
+                self.data.transition_data[k] = new_temp_v
+            self.max_seq_length = self.max_seq_length - len(t)
+# -------------------------------------------------------------
+
     def _check_safe_view(self, v, dest):
         idx = len(v.shape) - 1
         for s in dest.shape[::-1]:
@@ -213,6 +248,7 @@ class ReplayBuffer(EpisodeBatch):
 
     def insert_episode_batch(self, ep_batch):
         if self.buffer_index + ep_batch.batch_size <= self.buffer_size:
+            ep_batch.max_seq_length = ep_batch.data.transition_data['obs'].size()[1]
             self.update(ep_batch.data.transition_data,
                         slice(self.buffer_index, self.buffer_index + ep_batch.batch_size),
                         slice(0, ep_batch.max_seq_length),

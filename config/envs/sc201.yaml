@@ -4,7 +4,11 @@ env_args:
   continuing_episode: False
   difficulty: "7"
   game_version: null
+<<<<<<< HEAD
   map_name: "5m_vs_6m_new03"
+=======
+  map_name: "3s_vs_5z_new01"
+>>>>>>> 2ac4495 (日期0721 修改了局面三&局面四的lamda和reward 使其得以适应不同视距的智能体 同时做了数据清洗 去除了具有敌方智能体的数据)
   move_amount: 2
   obs_all_health: True
   obs_instead_of_state: False

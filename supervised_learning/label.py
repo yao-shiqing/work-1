@@ -120,9 +120,11 @@ class LamdaLabel:
                 if distance < min_distance:
                     min_distance = distance
         d_sight = 9 / self.d_map
-        if min_distance >= 0.5 * d_sight and min_distance <= 1.5 * d_sight:
-            lamda_1 = (min_distance - 0.5 * d_sight) / d_sight
-        elif min_distance > 1.5 * d_sight:
+        # if min_distance >= 0.5 * d_sight and min_distance <= 1.5 * d_sight:
+        if min_distance >= 0.5 * d_sight and min_distance <= d_sight:
+            # lamda_1 = (min_distance - 0.5 * d_sight) / d_sight
+            lamda_1 = 0.5
+        elif min_distance > d_sight:
             lamda_1 = 1
         return lamda_1
 
@@ -138,9 +140,10 @@ class LamdaLabel:
                 if distance < min_distance:
                     min_distance = distance
         d_sight = 9 / self.d_map
-        if min_distance >= 0.5 * d_sight and min_distance <= 1.5 * d_sight:
-            lamda_2 = (min_distance - 0.5 * d_sight) / d_sight
-        elif min_distance > 1.5 * d_sight:
+        if min_distance >= 0.5 * d_sight and min_distance <= d_sight:
+            # lamda_2 = (min_distance - 0.5 * d_sight) / d_sight
+            lamda_2 = 0.5
+        elif min_distance > d_sight:
             lamda_2 = 1
         return lamda_2
 
@@ -158,7 +161,8 @@ class LamdaLabel:
                     d_max = d_temp
         d_sight = 9 / 9
         if d_max >= 0.2 * d_sight and d_max <= 0.5 * d_sight:
-            lamda_3 = (0.5 * d_sight - d_max) / 0.3 * d_sight
+            # lamda_3 = (0.5 * d_sight - d_max) / 0.3 * d_sight
+            lamda_3 = 0.5
         elif d_max < 0.2 * d_sight:
             lamda_3 = 1
         return lamda_3
@@ -183,10 +187,13 @@ class LamdaLabel:
                 if distance < d_min:
                     d_min = distance
         d_sight = 9 / self.d_map
+
+        '''
         if d_min >= 0.5 * d_sight and d_min <= 1.5 * d_sight:
             lamda_4_lead = (d_min - 0.5 * d_sight) / d_sight
         elif d_min > 1.5 * d_sight:
             lamda_4_lead = 1
+<<<<<<< HEAD
         # 跟随智能体 -- 组间lamda
         x_j, y_j = self.g_state_t0[:, int(n_st * j_grp + 2)], self.g_state_t0[:, int(n_st * j_grp + 3)]
         d_grp = np.sqrt((x_k - x_j) ** 2 + (y_k - y_j) ** 2)
@@ -194,6 +201,38 @@ class LamdaLabel:
             lamda_4_follow = (0.5 * d_sight - d_grp) / 0.3 * d_sight
         elif d_grp < 0.2 * d_sight:
             lamda_4_follow = 1
+=======
+        if d_min == float('inf'):
+            lamda_4_lead = 0        
+        '''
+
+        if d_min >= 0.5 * d_sight and d_min <= d_sight:
+            lamda_4_lead = 0.5
+        elif d_min > d_sight:
+            lamda_4_lead = 1
+        if d_min == float('inf'):
+            lamda_4_lead = 0
+
+        # 跟随智能体 -- 组间lamda
+
+        # x_j, y_j = self.state[int(n_st * j_grp + 2)], self.state[int(n_st * j_grp + 3)]
+        # d_grp = np.sqrt((x_k - x_j) ** 2 + (y_k - y_j) ** 2)
+        # if d_grp >= 0.2 * d_sight and d_grp <= 0.5 * d_sight:
+        #     lamda_4_follow = (0.5 * d_sight - d_grp) / 0.3 * d_sight
+        # elif d_grp < 0.2 * d_sight:
+        #     lamda_4_follow = 1
+
+        d_grp = obs_k[n + b2 * j + 1]
+        if d_grp >= 0.2 and d_grp <= 0.5:
+            # lamda_4_follow = (0.5 - d_grp) / 0.3
+            lamda_4_follow = 0.5
+        elif d_grp < 0.2:
+            lamda_4_follow = 1
+        else:
+            print('lead-agent: ',j_grp ,' ; follow-agent: ',k)
+            print('d_grp: ', d_grp)
+            self.fig_t()
+>>>>>>> 2ac4495 (日期0721 修改了局面三&局面四的lamda和reward 使其得以适应不同视距的智能体 同时做了数据清洗 去除了具有敌方智能体的数据)
 
         # 选取智能体 赋值lamda_4
         lamda_4 = lamda_4_lead if grp_x < 0 or (grp_x == 0 and grp_y < 0) else lamda_4_follow

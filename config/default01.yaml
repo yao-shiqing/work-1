@@ -17,6 +17,7 @@ t_max: 150 # Stop running after this many timesteps
 use_cuda: True # Use gpu by default unless it isn't available
 buffer_cpu_only: False # If true we won't keep all of the replay buffer in vram
 
+<<<<<<< HEAD
 # --- Logging options ---
 use_tensorboard: True # Log results to tensorboard
 save_model: true # Save the models to disk
@@ -27,7 +28,27 @@ evaluate: False # Evaluate model for test_nepisode episodes and quit (no trainin
 load_step: 0 # Load model trained on this many timesteps (0 if choose max possible)
 save_replay: False # Saving the replay of the model loaded from checkpoint_path
 # save_replay: true
+=======
+# --- Logging options --- train --- 
+use_tensorboard: True # Log results to tensorboard
+save_model: true # Save the models to disk
+save_model_interval: 5000 # Save models after this many timesteps
+checkpoint_path: "" # Load a checkpoint from this path
+evaluate: False # Evaluate model for test_nepisode episodes and quit (no training)
+load_step: 0 # Load model trained on this many timesteps (0 if choose max possible)
+save_replay: False # Saving the replay of the model loaded from checkpoint_path
+>>>>>>> 2ac4495 (日期0721 修改了局面三&局面四的lamda和reward 使其得以适应不同视距的智能体 同时做了数据清洗 去除了具有敌方智能体的数据)
 local_results_path: "results" # Path for local results
+
+# --- Logging options --- replay --- 
+# use_tensorboard: False # Log results to tensorboard
+# save_model: False # Save the models to disk
+# save_model_interval: 5000 # Save models after this many timesteps
+# checkpoint_path: "/home/data_0/ysq_23/results/models/iql__2024-07-20_20-42-19" # model --- path
+# evaluate: False # Evaluate model for test_nepisode episodes and quit (no training)
+# load_step: 0 # Load model trained on this many timesteps (0 if choose max possible)
+# save_replay: True # Saving the replay of the model loaded from checkpoint_path
+# local_results_path: "results" # Path for local results
 
 # --- RL hyperparameters ---
 gamma: 0.99
