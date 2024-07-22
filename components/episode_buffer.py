@@ -117,23 +117,37 @@ class EpisodeBatch:
         # 初始化定义一些数据
         num_size = self.data.transition_data['obs'].size()[1]
         n = env.get_obs_move_feats_size()
-        e1 = env.get_obs_enemy_feats_size()[0]  # 几个 enemy agents 
+        e = np.prod(env.get_obs_enemy_feats_size())
+        a = np.prod(env.get_obs_ally_feats_size())
+        own_shield = env.shield_bits_enemy
+        e1 = env.get_obs_enemy_feats_size()[0]  # 几个 enemy agents
         e2 = env.get_obs_enemy_feats_size()[1]  # 每个 enemy agents的特征数量 
         b1 = env.get_obs_ally_feats_size()[0]  # 几个 ally agents 
         temp_obs = self.data.transition_data['obs']
         t = []
 
-        for i in range(self.max_seq_length):
-            temp_obs_i = temp_obs[:,i]
-            for n_a in range(b1):
-                obs_a = temp_obs_i[:,n_a,:]
-                for n_e in range(e1):
-                    if obs_a[:,n + n_e * e2 + 1] != 0:
-                        t.append(i) 
-                        has_nonzero = True
-                        break
-                    else:
-                        has_nonzero = False
+        for t_i in range(self.max_seq_length):
+            temp_obs_t = temp_obs[:,t_i]
+            # for n_a in range(b1+1):
+            #     obs_a = temp_obs_t[:,n_a,:]
+            #     for n_e in range(e1): # 不同 enemy
+            #         if obs_a[:,n + n_e * e2 + 1] != 0:
+            #             t.append(t_i)
+            #             has_nonzero = True
+            #             break
+            #         else:
+            #             has_nonzero = False
+            #     if has_nonzero:
+            #         break
+            for n_a in range(b1+1):
+                obs_a = temp_obs_t[:,n_a,:]
+                if (obs_a[:,n+e+a+own_shield] != 1) | (obs_a[:,n+e+a] != 1):
+                    t.append(t_i)
+                    has_nonzero = True
+                    break
+                else:
+                    has_nonzero = False
+
         if has_nonzero: 
             index_list = [ti for ti in range(num_size) if ti not in t]
             for k,v in self.data.transition_data.items():

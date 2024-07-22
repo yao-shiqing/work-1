@@ -74,7 +74,7 @@ def config_copy(config):
 if __name__ == '__main__':
     params = deepcopy(sys.argv)
     params.append("--config=iql-01")
-    params.append("--env-config=sc201")
+    # params.append("--env-config=sc201")
 
     # Get the defaults from default.yaml
     with open(os.path.join(os.path.dirname(__file__), "config", "default01.yaml"), "r") as f:
@@ -94,8 +94,8 @@ if __name__ == '__main__':
     ex.add_config(config_dict)
 
     # Save to disk by default for sacred
-    logger.info("Saving to FileStorageObserver in results/0721_test")
-    file_obs_path = os.path.join(results_path, "0721_test")
+    logger.info("Saving to FileStorageObserver in results/0722_test")
+    file_obs_path = os.path.join(results_path, "0722_test")
     ex.observers.append(FileStorageObserver.create(file_obs_path))
 
     ex.run_commandline(params)

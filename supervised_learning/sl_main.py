@@ -1,27 +1,29 @@
-from smac.env import MultiAgentEnv, StarCraft2Env
+import torch
 import numpy as np
-import math
-import matplotlib.pyplot as plt
+import torch.nn as nn
+import os
+import torch.optim as optim
+from smac.env import MultiAgentEnv, StarCraft2Env
+from label import LamdaLabel
+from model import SL_Network
+from torch.utils.tensorboard import SummaryWriter
+from datetime import datetime
 
-def main(map_name,iteration,):
+def main(map_name):
     a_env = StarCraft2Env(map_name=map_name)
     env_info = a_env.get_env_info()
     n_agents = env_info["n_agents"]
-<<<<<<< HEAD
-=======
     n_tacit = 4
     lr = 0.00005
     time_steps = 500
->>>>>>> 2ac4495 (日期0721 修改了局面三&局面四的lamda和reward 使其得以适应不同视距的智能体 同时做了数据清洗 去除了具有敌方智能体的数据)
 
     a_env.reset()
+    current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    a_current_time = current_time
+    log_dir = os.path.join('/home/data_0/ysq_23/smac/work-1/src/supervised_learning/results',f'{current_time}','tb_logs')
+    os.makedirs(log_dir, exist_ok=True)
+    writer = SummaryWriter(log_dir)
 
-<<<<<<< HEAD
-    while iter < iteration:
-        state = a_env.get_state()
-        obs = a_env.get_obs()
-        # obs_k = a_env.get_obs_agent(k)
-=======
     for epoch in range(1000):
         obs = a_env.get_obs()
         n_obs = len(a_env.get_obs()[0])
@@ -53,28 +55,34 @@ def main(map_name,iteration,):
 
             obs_matrix.append(input_sample)
             lamda_label_matrix.append(lamda_label_stacked_tensor)
->>>>>>> 2ac4495 (日期0721 修改了局面三&局面四的lamda和reward 使其得以适应不同视距的智能体 同时做了数据清洗 去除了具有敌方智能体的数据)
 
-        iter = iter + 1
+        # Training
+        obs_matrix_tensor = torch.stack(obs_matrix)
+        lamda_label_tensor = torch.stack(lamda_label_matrix)
+        optimizer.zero_grad()
+        lamda_net_tensor = sl_net.forward(obs_matrix_tensor)
+        lamda_net_tensor = lamda_net_tensor.squeeze(1)
+        loss = criterion(lamda_net_tensor, lamda_label_tensor)
+        loss.backward()
+        optimizer.step()
+        writer.add_scalar('Training Loss', loss.item(), epoch)
 
+        # Testing
+        test_start = int(time_steps - 0.05*time_steps)
+        test_lamda_label_tensor = torch.stack(lamda_label_matrix[test_start:])
+        test_obs_matrix_tensor = torch.stack(obs_matrix[test_start:])
+        test_output = sl_net(test_obs_matrix_tensor)
+        test_loss = criterion(test_output, test_lamda_label_tensor)
+        writer.add_scalar('Test Loss', test_loss.item(), epoch)
 
-    '''
-    while batch
-        记录 obs、state、lamda矩阵
-        用label求lamda
-            引自 label.py -- class LamdaLabel -- 输入矩阵obs和矩阵state 输出矩阵lamda
-        用model求lamda
-            引自 model.py -- class SL_Network -- model(input) -- 输入矩阵obs 输出矩阵lamda
-        记录二者的lamda
-        随机改变下位置 -- def()
-    求交叉熵-网络训练
-    batch[9:1]-训练&测试
-    '''
+        # Log results
+        with open(os.path.join('/home/data_0/ysq_23/smac/work-1/src/supervised_learning/results', f'{a_current_time}', 'training_log.txt'), 'a') as log_file:
+            log_file.write(f"Epoch {epoch + 1}, Time: {current_time}, Training Loss: {loss.item()}, Test Loss: {test_loss.item()}\n")
 
+        # Save model parameters
+    model_path = os.path.join('/home/data_0/ysq_23/smac/work-1/src/supervised_learning/results', f'{a_current_time}', f'model_{epoch + 1}.pth')
+    torch.save(sl_net.state_dict(), model_path)
+    writer.close()
 
-<<<<<<< HEAD
-map_name = "3s5z"
-=======
 map_name = "3s_vs_5z_label"
->>>>>>> 2ac4495 (日期0721 修改了局面三&局面四的lamda和reward 使其得以适应不同视距的智能体 同时做了数据清洗 去除了具有敌方智能体的数据)
 main(map_name)
