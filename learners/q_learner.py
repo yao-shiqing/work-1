@@ -83,6 +83,14 @@ class QLearner:
             chosen_action_qvals = self.mixer(chosen_action_qvals, batch["state"][:, :-1])
             target_max_qvals = self.target_mixer(target_max_qvals, batch["state"][:, 1:])
 
+    # ---------------------------------------------------------------
+        avail_actions1 = avail_actions[:, 1:]
+        for i in range(avail_actions1.size(0)):
+            for j in range(avail_actions1.size(1)):
+                if th.all(avail_actions1[i, j, :, :] == 0):
+                    terminated[i, j, :] = 1
+    # ---------------------------------------------------------------
+
         # Calculate 1-step Q-Learning targets
         targets = rewards + self.args.gamma * (1 - terminated) * target_max_qvals
 
@@ -96,7 +104,26 @@ class QLearner:
 
         # Normal L2 loss, take mean over actual data
         loss = (masked_td_error ** 2).sum() / mask.sum()
-        # 查看loss的矩阵大小 
+
+    # ---------------------------------------------------------------
+        # 查看loss的矩阵大小
+        # if loss > 1000000:
+        #     zero_entries_indices1 = []
+        #     zero_entries_indices2 = []
+        #     zero_entries_indices3 = []
+        #     avail_actions1 = avail_actions[:, 1:]
+        #     for i in range(avail_actions1.size(0)):
+        #         for j in range(avail_actions1.size(1)):
+        #             if th.all(avail_actions1[i, j, :, :] == 0):
+        #                 zero_entries_indices1.append((i, j))
+        #             if th.all(terminated[i, j, :] == 1):
+        #                 zero_entries_indices2.append((i, j))
+        #             if th.all(target_mac_out[i, j, :,:] == -9999999):
+        #                 zero_entries_indices3.append((i, j))
+        #     print('zero_entries_indices1: ',zero_entries_indices1)
+        #     print('zero_entries_indices2: ',zero_entries_indices2)
+        #     print('zero_entries_indices3: ',zero_entries_indices3)
+    # ---------------------------------------------------------------
 
         # Optimise
         self.optimiser.zero_grad()

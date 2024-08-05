@@ -24,7 +24,7 @@ class RewardAllocation:
         self.d_map = self.a_env.max_distance_x
         # self.sight = self.a_env.unit_sight_range(1)
 
-    def scenario_reward(self,nt,nr,tar,sr):
+    def scenario_reward(self,nt,nr,sr):
         # self.fig_t()
         n = self.a_env.get_obs_move_feats_size() + np.prod(self.a_env.get_obs_enemy_feats_size())
         b1 = self.a_env.get_obs_ally_feats_size()[0]  # 几个 ally agents 
@@ -90,8 +90,8 @@ class RewardAllocation:
                         lamda_id = 4
                         lamda_4 = self.scenario_4_lamda(k,obs_record_0,b2,n)
                         self.scenario_4_reward(k,obs_record_0,b2,n,lamda_4)
-            nt,nr,tar,sr = self.tarcit(nt,nr,tar,k,lamda_id,sr)
-        return self.reward_matrix,nt,nr,tar,sr
+            nt,nr,sr = self.tacit(nt,nr,k,lamda_id,sr)
+        return self.reward_matrix,nt,nr,sr
 
     def fig_t(self):
         map_x = self.d_map
@@ -222,6 +222,8 @@ class RewardAllocation:
             lamda_4_lead = (d_min - 0.5 * d_sight) / d_sight
         elif d_min > 1.5 * d_sight:
             lamda_4_lead = 1
+        if d_min == float('inf'):
+            lamda_4_lead = 0
         # 跟随智能体 -- 组间lamda
         x_j, y_j = self.g_state_t0[:,int(n_st * j_grp + 2)], self.g_state_t0[:,int(n_st * j_grp + 3)]
         d_grp = np.sqrt((x_k - x_j) ** 2 + (y_k - y_j) ** 2)
@@ -291,7 +293,10 @@ class RewardAllocation:
         
         max_lamda_30 = 1 if max_lamda_30 == float('-inf') else max_lamda_30
         max_lamda_31 = 1 - np.sqrt(1/sight_range) if max_lamda_30 == float('-inf') else max_lamda_31
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         ra = max_lamda_30 - max_lamda_31
+        ra = ra.to(device)
+        lamda_3 = torch.tensor(lamda_3, device=device)
         r3 = 8 * ra*(1-lamda_3)
         self.reward_matrix[:, k] = np.array([r3.item()], dtype=np.float32)
         return r3
@@ -321,26 +326,27 @@ class RewardAllocation:
                 if distance < d_min_0:
                     d_min_0 = distance
                     d_min = np.sqrt((x_k - x_i) ** 2 + (y_k - y_i) ** 2)
-        r4_lead = 8*(d_min_0 - d_min)
-
+        r4_lead = 8*(d_min_0 - d_min)*lamda_4
+        if np.isinf(d_min_0) or np.isinf(d_min):
+            r4_lead = 0
         # 跟随智能体 -- 组间reward
         x_j0, y_j0 = self.g_state_t0[:,int(n_st * j_grp + 2)], self.g_state_t0[:,int(n_st * j_grp + 3)]
         x_j1, y_j1 = self.g_state_t1[int(n_st * j_grp + 2)], self.g_state_t1[int(n_st * j_grp + 3)]
         d_grp0 = np.sqrt((x_k0 - x_j0)**2 + (y_k0 - y_j0)**2)
         d_grp1 = np.sqrt((x_k - x_j1)**2 + (y_k - y_j1)**2)
-        r4_follow = 8*(d_grp0 - d_grp1)
+        r4_follow = 8*(d_grp0 - d_grp1)*(1-lamda_4)
 
         # 选取智能体 赋值reward_4
-        r4 = r4_lead*lamda_4 if grp_x < 0 or (grp_x == 0 and grp_y < 0) else r4_follow*(1-lamda_4)
-        # self.reward_matrix[:, k] = np.array([r4.item()], dtype=np.float32)
-        self.reward_matrix[:, k] = np.array([r4], dtype=np.float32)
+        r4 = r4_lead if grp_x < 0 or (grp_x == 0 and grp_y < 0) else r4_follow
+        r4 = torch.tensor(r4).float()
+        self.reward_matrix[:, k] = np.array([r4.item()], dtype=np.float32)
+        # self.reward_matrix[:, k] = np.array([r4], dtype=np.float32)
         return r4
 
-    def tarcit(self,nt,nr,tar,k,lamda_id,sr):
-        nt[lamda_id-1] += 1
+    def tacit(self,nt,nr,k,lamda_id,sr):
+        nt[self.t, lamda_id-1] += 1
         if self.reward_matrix[:,k] != 0:
             sr[lamda_id-1] = (sr[lamda_id-1] + self.reward_matrix[:,k])/2
-        if self.reward_matrix[:,k] > 0:
-            nr[lamda_id-1] += 1
-        tar[lamda_id-1] = nr[lamda_id-1]/nt[lamda_id-1]
-        return nt,nr,tar,sr
+        if self.reward_matrix[:,k] >= 0:
+            nr[self.t, lamda_id-1] += 1
+        return nt,nr,sr

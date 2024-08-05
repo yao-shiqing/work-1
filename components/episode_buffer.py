@@ -147,6 +147,8 @@ class EpisodeBatch:
                     break
                 else:
                     has_nonzero = False
+            if has_nonzero:
+                break
 
         if has_nonzero: 
             index_list = [ti for ti in range(num_size) if ti not in t]
@@ -157,7 +159,26 @@ class EpisodeBatch:
                 elif v.dim() == 4:
                     new_temp_v = th.cat([temp_v[:, i:i+1,:, :] for i in index_list], dim=1)
                 self.data.transition_data[k] = new_temp_v
-            self.max_seq_length = self.max_seq_length - len(t)
+
+
+    def clear(self, env ,t):
+        n = env.get_obs_move_feats_size()
+        e = np.prod(env.get_obs_enemy_feats_size())
+        a = np.prod(env.get_obs_ally_feats_size())
+        own_shield = env.shield_bits_enemy
+        b1 = env.get_obs_ally_feats_size()[0]  # 几个 ally agents
+        temp_obs = self.data.transition_data['obs']
+        has_nonzero = False
+        for t_i in range(t):
+            temp_obs_t = temp_obs[:,t_i]
+            for n_a in range(b1+1):
+                obs_a = temp_obs_t[:,n_a,:]
+                if (obs_a[:,n+e+a+own_shield] != 1) | (obs_a[:,n+e+a] != 1):
+                    has_nonzero = True
+                    break
+            if has_nonzero:
+                break
+        return has_nonzero
 # -------------------------------------------------------------
 
     def _check_safe_view(self, v, dest):
@@ -262,7 +283,6 @@ class ReplayBuffer(EpisodeBatch):
 
     def insert_episode_batch(self, ep_batch):
         if self.buffer_index + ep_batch.batch_size <= self.buffer_size:
-            ep_batch.max_seq_length = ep_batch.data.transition_data['obs'].size()[1]
             self.update(ep_batch.data.transition_data,
                         slice(self.buffer_index, self.buffer_index + ep_batch.batch_size),
                         slice(0, ep_batch.max_seq_length),

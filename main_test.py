@@ -1,6 +1,6 @@
 import numpy as np
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '7'
+os.environ['CUDA_VISIBLE_DEVICES'] = '4'
 import collections
 from os.path import dirname, abspath
 from copy import deepcopy
@@ -94,8 +94,8 @@ if __name__ == '__main__':
     ex.add_config(config_dict)
 
     # Save to disk by default for sacred
-    logger.info("Saving to FileStorageObserver in results/0722_test")
-    file_obs_path = os.path.join(results_path, "0722_test")
+    logger.info("Saving to FileStorageObserver in results/0731_test")
+    file_obs_path = os.path.join(results_path, "0731_test")
     ex.observers.append(FileStorageObserver.create(file_obs_path))
 
     ex.run_commandline(params)
