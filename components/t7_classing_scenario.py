@@ -181,6 +181,10 @@ class RewardAllocation:
         zero_matrix = np.zeros((b1), dtype=int)
         obs_k = self.obs_matrix[:,k,:]
         for j in range (b1):
+            j1 = j if j < k else j + 1
+            obs_j = self.obs_matrix[:, j1, :]
+            if np.allclose(obs_j, np.zeros_like(obs_j)):
+                continue
             if obs_k[:,n + b2 * j] != 0:
                 zero_matrix[j] = 1
 # -------------------------------------------------------
@@ -188,35 +192,39 @@ class RewardAllocation:
         d_max = -float('inf')
         for k2 in range(b1):
             if zero_matrix[k2] == 1:
-                d_temp = obs_k[:,n + b2 * k2 + 1]
-                if d_temp > d_max:
-                    d_max = d_temp
-
+                max_d_temp = obs_k[:,n + b2 * k2 + 1]
+                if max_d_temp > d_max:
+                    d_max = max_d_temp
     # 最近距离
-        # d_max = float('inf')
-        # for k2 in range(b1):
-        #     if zero_matrix[k2] == 1:
-        #         d_temp = obs_k[:,n + b2 * k2 + 1]
-        #         if d_temp < d_max:
-        #             d_max = d_temp
-# -------------------------------------------------------
-        d_sight = 9 / 9
-# -------------------------------------------------------
-        # 新版 lamda
-        # 此时以 d0 = 0.3 * d_sight 作为分界线【小于d0时 reward取负值】
-        # d0 = 0.4 * d_sight
-        # if d_max >= d0 and d_max <= 0.5 * d_sight:
-        #     lamda_30 = (0.5 * d_sight - d_max) / (0.5 * d_sight - d0)
-        #     lamda_3 = 1-lamda_30
-        # elif d_max < d0:
-        #     lamda_30 = (d_max - 0) / (d0)
-        #     lamda_3 = -(1-lamda_30)
+        d_min = float('inf')
+        for k2 in range(b1):
+            if zero_matrix[k2] == 1:
+                min_d_temp = obs_k[:,n + b2 * k2 + 1]
+                if min_d_temp < d_min:
+                    d_min = min_d_temp
         
+    # 新版 lamda
+        # 此时以 d0 = 0.3 * d_sight 作为分界线【小于d0时 reward取负值】
+        d_sight = 9 / 9
+        d0 = 0.3 * d_sight
+        if d_min < d0:
+            lamda_3 = (d_min - 0) / (d0)
+        elif d_min >= d0 and d_min <= 0.5 * d_sight:
+            lamda_3 = (0.5 * d_sight - d_max) / (0.5 * d_sight - d0)
+# -------------------------------------------------------
+    # 测试：
+        # d_sight = 9 / 9
+        # d0 = 0.3 * d_sight
+        # if d_max < d0:
+        #     lamda_3 = (d_max - 0) / (d0)
+        # elif d_max >= d0 and d_max <= 0.5 * d_sight:
+        #     lamda_3 = (0.5 * d_sight - d_max) / (0.5 * d_sight - d0)
+# -------------------------------------------------------
         # 旧版lamda
-        if d_max >= 0.2 * d_sight and d_max <= 0.5 * d_sight:
-            lamda_3 = (0.5 * d_sight - d_max) / 0.3 * d_sight
-        elif d_max < 0.2 * d_sight:
-            lamda_3 = 1
+        # if d_max >= 0.2 * d_sight and d_max <= 0.5 * d_sight:
+        #     lamda_3 = (0.5 * d_sight - d_max) / 0.3 * d_sight
+        # elif d_max < 0.2 * d_sight:
+        #     lamda_3 = 1
 # -------------------------------------------------------
         return lamda_3
 
@@ -251,10 +259,13 @@ class RewardAllocation:
         # 跟随智能体 -- 组间lamda
         x_j, y_j = self.g_state_t0[:,int(n_st * j_grp + 2)], self.g_state_t0[:,int(n_st * j_grp + 3)]
         d_grp = np.sqrt((x_k - x_j) ** 2 + (y_k - y_j) ** 2)
-        if d_grp >= 0.2 * d_sight and d_grp <= 0.5 * d_sight:
-            lamda_4_follow = (0.5 * d_sight - d_grp) / 0.3 * d_sight
-        elif d_grp < 0.2 * d_sight:
-            lamda_4_follow = 1
+        d0 = 0.3 * d_sight
+        if d_grp >= d0 and d_grp <= 0.5 * d_sight:
+            lamda_4_follow = (0.5 * d_sight - d_grp) / (0.5 * d_sight-d0)
+            lamda_4_follow = 1 - lamda_4_follow
+        elif d_grp < d0:
+            lamda_4_follow = d_grp / d0
+            lamda_4_follow = -(1 - lamda_4_follow)
 
         # 选取智能体 赋值lamda_4
         lamda_4 = lamda_4_lead if grp_x < 0 or (grp_x == 0 and grp_y < 0) else lamda_4_follow
@@ -300,47 +311,51 @@ class RewardAllocation:
         sight_range = 9
         zero_matrix = np.zeros((b1), dtype=int)
         for j in range (b1):
+            j1 = j if j < k else j + 1
+            obs_j = self.obs_matrix[:, j1, :]
+            if np.allclose(obs_j, np.zeros_like(obs_j)):
+                continue
             if obs_k_t1[:,n + b2 * j] != 0:
                 zero_matrix[j] = 1
         x_k0, y_k0 = self.g_state_t0[:,int(n_st * k+2)], self.g_state_t0[:,int(n_st * k+3)]
         x_k1, y_k1 = self.g_state_t1[int(n_st * k+2)], self.g_state_t1[int(n_st * k+3)]
 # -----------------------------------------------------------------------------------------------------------
     # 最远距离
-        max_lamda_30 = -float('inf') 
+        max_d0 = -float('inf') 
         for k2 in range(b1):
             if zero_matrix[k2] == 1:
                 k2 = k2 if k2 < k else k2 + 1
                 al_x, al_y = self.g_state_t0[:,int(n_st * k2+2)], self.g_state_t0[:,int(n_st * k2+3)]
-                lamda_3_k2 = np.sqrt((x_k0 - al_x)**2 + (y_k0 - al_y)**2)
-                if lamda_3_k2 > max_lamda_30:
-                    # max_lamda_30 = lamda_3_k2 * np.sqrt(max_distance_x / sight_range)
-                    max_lamda_30 = lamda_3_k2
-                    lamda_3_kt = np.sqrt((x_k1 - al_x)**2 + (y_k1 - al_y)**2)
-                    # max_lamda_31 = lamda_3_kt * np.sqrt(max_distance_x / sight_range)
-                    max_lamda_31 = lamda_3_kt
-        max_lamda_30 = 1 if max_lamda_30 == float('-inf') else max_lamda_30
-        max_lamda_31 = 1 - np.sqrt(1/max_distance_x) if max_lamda_30 == float('-inf') else max_lamda_31
-    
+                max_d_k2 = np.sqrt((x_k0 - al_x)**2 + (y_k0 - al_y)**2)
+                if max_d_k2 > max_d0:
+                    # max_d0 = max_d_k2 * np.sqrt(max_distance_x / sight_range)
+                    max_d0 = max_d_k2
+                    max_d_kt = np.sqrt((x_k1 - al_x)**2 + (y_k1 - al_y)**2)
+                    # max_d1 = max_d_kt * np.sqrt(max_distance_x / sight_range)
+                    max_d1 = max_d_kt
     # 最近距离
-        # max_lamda_30 = float('inf') 
-        # for k2 in range(b1):
-        #     if zero_matrix[k2] == 1:
-        #         k2 = k2 if k2 < k else k2 + 1
-        #         al_x, al_y = self.g_state_t0[:,int(n_st * k2+2)], self.g_state_t0[:,int(n_st * k2+3)]
-        #         lamda_3_k2 = np.sqrt((x_k0 - al_x)**2 + (y_k0 - al_y)**2)
-        #         if lamda_3_k2 < max_lamda_30:
-        #             max_lamda_30 = lamda_3_k2
-        #             lamda_3_kt = np.sqrt((x_k1 - al_x)**2 + (y_k1 - al_y)**2)
-        #             max_lamda_31 = lamda_3_kt
-        # max_lamda_30 = 1 if max_lamda_30 == float('inf') else max_lamda_30
-        # max_lamda_31 = 1 - np.sqrt(1/max_distance_x) if max_lamda_30 == float('inf') else max_lamda_31
+        min_d0 = float('inf') 
+        for k2 in range(b1):
+            if zero_matrix[k2] == 1:
+                k2 = k2 if k2 < k else k2 + 1
+                al_x, al_y = self.g_state_t0[:,int(n_st * k2+2)], self.g_state_t0[:,int(n_st * k2+3)]
+                min_d_k2 = np.sqrt((x_k0 - al_x)**2 + (y_k0 - al_y)**2)
+                if min_d_k2 < min_d0:
+                    min_d0 = min_d_k2
+                    min_dt = np.sqrt((x_k1 - al_x)**2 + (y_k1 - al_y)**2)
+                    min_d1 = min_dt
+    # 此时以 d0 = 0.3 * d_sight 作为分界线【小于d0时reward取负值】
+        d_sight = 9 / max_distance_x
+        d0 = 0.3 * d_sight
+        if min_d0 < d0:
+            ra = min_d1 - min_d0
+        elif min_d0 >= d0 and min_d0 <= 0.5 * d_sight:
+            ra = max_d0 - max_d1
 # -----------------------------------------------------------------------------------------------------------       
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        ra = max_lamda_30 - max_lamda_31
         ra = ra.to(device)
         lamda_3 = torch.tensor(lamda_3, device=device)
-        # r3 = 10 * ra * lamda_3 # 新版
-        r3 = 8 * ra*(1-lamda_3) # 旧版
+        r3 = 10 * ra * (1-lamda_3) # 新版
         self.reward_matrix[:, k] = np.array([r3.item()], dtype=np.float32)
         return r3
 
@@ -377,13 +392,12 @@ class RewardAllocation:
         x_j1, y_j1 = self.g_state_t1[int(n_st * j_grp + 2)], self.g_state_t1[int(n_st * j_grp + 3)]
         d_grp0 = np.sqrt((x_k0 - x_j0)**2 + (y_k0 - y_j0)**2)
         d_grp1 = np.sqrt((x_k - x_j1)**2 + (y_k - y_j1)**2)
-        r4_follow = 8*(d_grp0 - d_grp1)*(1-lamda_4)
+        r4_follow = 8*(d_grp0 - d_grp1)*lamda_4
 
         # 选取智能体 赋值reward_4
         r4 = r4_lead if grp_x < 0 or (grp_x == 0 and grp_y < 0) else r4_follow
         r4 = torch.tensor(r4).float()
         self.reward_matrix[:, k] = np.array([r4.item()], dtype=np.float32)
-        # self.reward_matrix[:, k] = np.array([r4], dtype=np.float32)
         return r4
 
     def tacit(self,nt,nr,k,lamda_id,sr):
