@@ -1,3 +1,5 @@
+# 默契：期望聚在一起的；即 d0 = 0
+
 # 测试版 08 -- 在 t5_classing_scenario 基础上修改
 # 对“局面三”进行了修改，对于小于一定的距离范围采取一定的负奖励。
 # 与t6的区别：修改较少，在尝试减小修改
@@ -206,7 +208,7 @@ class RewardAllocation:
     # 新版 lamda
     # 此时以 d0 = 0.3 * d_sight 作为分界线【小于d0时 reward取负值】
         d_sight = 9 / 9
-        d0 = 0.3 * d_sight
+        d0 = 0 * d_sight
         if d_min < d0:
             lamda_3 = (d_min - 0) / (d0)
         elif d_min >= d0 and d_min <= 0.5 * d_sight:
@@ -259,7 +261,7 @@ class RewardAllocation:
         # 跟随智能体 -- 组间lamda
         x_j, y_j = self.g_state_t0[:,int(n_st * j_grp + 2)], self.g_state_t0[:,int(n_st * j_grp + 3)]
         d_grp = np.sqrt((x_k - x_j) ** 2 + (y_k - y_j) ** 2)
-        d0 = 0.3 * d_sight
+        d0 = 0 * d_sight
         if d_grp >= d0 and d_grp <= 0.5 * d_sight:
             lamda_4_follow = (0.5 * d_sight - d_grp) / (0.5 * d_sight-d0)
             lamda_4_follow = 1 - lamda_4_follow
@@ -352,7 +354,7 @@ class RewardAllocation:
 
     # 此时以 d0 = 0.3 * d_sight 作为分界线【小于d0时reward取负值】
         d_sight = 9 / max_distance_x
-        d0 = 0.3 * d_sight
+        d0 = 0 * d_sight
         if min_d0 < d0:
             ra = ra_min
         elif min_d0 >= d0 and min_d0 <= 0.5 * d_sight:
